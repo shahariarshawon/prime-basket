@@ -125,8 +125,11 @@ const verifyUser = async (email: string, otp: string) => {
   };
 };
 
-const getAllUsers = async () => {
+const getVerifiedUsers = async () => {
   return await prisma.user.findMany({
+    where: {
+      isVerified: true,
+    },
     select: {
       id: true,
       name: true,
@@ -145,5 +148,5 @@ export const AuthService = {
   loginUser,
   sendVerification,
   verifyUser,
-  getAllUsers,
+  getVerifiedUsers,
 };
