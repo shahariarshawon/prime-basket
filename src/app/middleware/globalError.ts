@@ -1,25 +1,158 @@
-import { NextFunction, Request, Response } from "express"
-import env from "../../config/env.js"
-import { ErrorResponse } from "../types/index.js" 
+import { NextFunction, Request, Response } from "express";
+import env from "../../config/env.js";
+import { ErrorResponse } from "../types/index.js";
+import status from "http-status";
+import { Prisma } from "@prisma/client";
 
-const globalError=(err:any, _req:Request, res:Response, next:NextFunction)=>{
-   const statusCode=err.statusCode || 500
-   const message=err.message || 'somthing went wrong'
+const globalError = (
+  err: any,
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  let statusCode = err.statusCode || 500;
+  let message = err.message || "somthing went wrong";
 
-   const errResponse:ErrorResponse={
-    success:false,
-    message:message,
+  // Handle known Prisma client errors
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    switch (err.code) {
+      case "P1000":
+        message = "Authentication failed against the database server.";
+        statusCode = status.BAD_GATEWAY;
+        break;
 
-   }
+      case "P1001":
+        message = "Cannot reach the database server. Please check connection.";
+        statusCode = status.BAD_GATEWAY;
+        break;
 
-   if(env.nodeEnv === 'development'){
-    errResponse.error=err,
-    errResponse.stack=err.stack
-   }
+      case "P1002":
+        message = "The database operation timed out.";
+        statusCode = status.REQUEST_TIMEOUT;
+        break;
 
+      case "P2000":
+        message = "Value too long for a database column.";
+        statusCode = status.BAD_REQUEST;
+        break;
 
+      case "P2001":
+        message = "Record not found.";
+        statusCode = status.NOT_FOUND;
+        break;
 
-   res.status(statusCode).json(errResponse)
-}
+      case "P2002":
+        message = "Duplicate key error — unique constraint failed.";
+        statusCode = status.CONFLICT;
+        break;
 
-export default globalError
+      case "P2003":
+        message = "Foreign key constraint failed.";
+        statusCode = status.BAD_REQUEST;
+        break;
+
+      case "P2004":
+        message = "Database constraint failed.";
+        statusCode = status.BAD_REQUEST;
+        break;
+
+      case "P2005":
+        message = "Invalid value stored in the database.";
+        statusCode = status.BAD_REQUEST;
+        break;
+
+      case "P2006":
+        message = "Invalid value type provided for the field.";
+        statusCode = status.BAD_REQUEST;
+        break;
+
+      case "P2007":
+        message = "Data validation error.";
+        statusCode = status.BAD_REQUEST;
+        break;
+
+      case "P2008":
+        message = "Query parsing failed.";
+        statusCode = status.BAD_REQUEST;
+        break;
+
+      case "P2009":
+        message = "Query validation failed.";
+        statusCode = status.BAD_REQUEST;
+        break;
+
+      case "P2010":
+        message = "Raw query failed. Check your query syntax.";
+        statusCode = status.BAD_REQUEST;
+        break;
+
+      case "P2011":
+        message = "Null constraint violation — missing required field.";
+        statusCode = status.BAD_REQUEST;
+        break;
+
+      case "P2012":
+        message = "Missing required value for a field.";
+        statusCode = status.BAD_REQUEST;
+        break;
+
+      case "P2013":
+        message = "Missing required argument for a field.";
+        statusCode = status.BAD_REQUEST;
+        break;
+
+      case "P2014":
+        message = "Relation violation between records.";
+        statusCode = status.BAD_REQUEST;
+        break;
+
+      case "P2015":
+        message = "Related record not found.";
+        statusCode = status.NOT_FOUND;
+        break;
+
+      case "P2016":
+        message = "Query interpretation error.";
+        statusCode = status.BAD_REQUEST;
+        break;
+
+      case "P2017":
+        message = "Record relation inconsistency.";
+        statusCode = status.BAD_REQUEST;
+        break;
+
+      case "P2018":
+        message = "Required connected record not found.";
+        statusCode = status.NOT_FOUND;
+        break;
+
+      case "P2019":
+        message = "Input error — invalid data.";
+        statusCode = status.BAD_REQUEST;
+        break;
+
+      case "P2020":
+        message = "Value out of range for the column type.";
+        statusCode = status.BAD_REQUEST;
+        break;
+
+      case "P2021":
+        message = "Table not found in the database.";
+        statusCode = status.NOT_FOUND;
+        break;
+    }
+  }
+
+  const errResponse: ErrorResponse = {
+    success: false,
+    message: message,
+  };
+
+  if (env.nodeEnv === "development") {
+    ((errResponse.error = err), (errResponse.stack = err.stack));
+  }
+
+  res.status(statusCode).json(errResponse);
+};
+
+export default globalError;
