@@ -9,13 +9,29 @@ const registerUser = async (payload: {
   email: string;
   password: string;
 }) => {
+  const existingUser = await prisma.user.findUnique({
+    where: { email: payload.email },
+  });
+
+  if (existingUser) {
+    throw new Error("User already exists");
+  }
+
   const hashedPassword = await bcrypt.hash(payload.password, 10);
 
   const user = await prisma.user.create({
     data: {
       name: payload.name,
       email: payload.email,
-      password: hashedPassword,
+      hashedPassword,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      isVerified: true,
+      createdAt: true,
     },
   });
 
@@ -31,22 +47,36 @@ const loginUser = async (payload: { email: string; password: string }) => {
     throw new Error("User not found");
   }
 
-  const match = await bcrypt.compare(payload.password, user.password);
+  const match = await bcrypt.compare(payload.password, user.hashedPassword);
 
   if (!match) {
     throw new Error("Password incorrect");
   }
 
   const token = jwt.sign(
-    { userId: user.id, email: user.email },
+    {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    },
     env.jwt_secret,
-    { expiresIn: "7d" },
+    {
+      expiresIn: "7d",
+    },
   );
 
   return { token };
 };
 
 const sendVerification = async (email: string) => {
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
   await prisma.user.update({
@@ -58,6 +88,10 @@ const sendVerification = async (email: string) => {
   });
 
   await sendEmail(email, "Email Verification OTP", `Your OTP is ${otp}`);
+
+  return {
+    message: "OTP sent successfully",
+  };
 };
 
 const verifyUser = async (email: string, otp: string) => {
@@ -85,30 +119,31 @@ const verifyUser = async (email: string, otp: string) => {
       otpExpiry: null,
     },
   });
+
+  return {
+    message: "User verified successfully",
+  };
 };
 
-const getVerifiedUsers = async () => {
-  const users = await prisma.user.findMany({
-    where: {
-      isVerified: true,
-    },
+const getAllUsers = async () => {
+  return await prisma.user.findMany({
     select: {
       id: true,
       name: true,
       email: true,
+      phone: true,
+      role: true,
+      status: true,
       isVerified: true,
       createdAt: true,
     },
   });
-
-  return users;
 };
-
 
 export const AuthService = {
   registerUser,
   loginUser,
   sendVerification,
   verifyUser,
-  getVerifiedUsers
+  getAllUsers,
 };
