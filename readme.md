@@ -13,6 +13,9 @@
 ## User Login API Result
 <img width="1381" height="837" alt="Screenshot from 2026-05-17 07-42-14" src="https://github.com/user-attachments/assets/3999d80e-9f40-4a43-be1b-905f1924dc08" />
 
+## All Verified Users API Result
+<img width="1381" height="837" alt="Screenshot from 2026-05-17 07-53-28" src="https://github.com/user-attachments/assets/c193db8c-3f01-4e5d-91e3-9f3ed0a771da" />
+
 
 ## Inteview Questions of 17 May 2026
 # 📘 Prisma ORM Interview Guide
