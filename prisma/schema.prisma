@@ -6,60 +6,131 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id             String    @id @default(uuid()) @db.Uuid
-  name           String    @db.VarChar(100)
-  email          String    @unique @db.VarChar(100)
-  hashedPassword String    @db.VarChar(255)
-  phone          String?   @db.VarChar(20)
-  role           String    @default("customer")
-  isVerified     Boolean   @default(false)
-  status         String    @default("active")
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  customer       Customer?
-  products       Product[] @relation("ProductCreator")
-  revenues       Revenue[] @relation("SellerRevenue")
+// enum use korchi karon role random na hoye jno eshober moddhei hoy tahole error dhora easy hobe
+
+enum Role {
+  admin
+  customer
 }
 
-model Customer {
-  id         String   @id @default(uuid()) @db.Uuid
-  userId     String   @unique @db.Uuid
-  totalSpent Decimal  @default(0.00) @db.Decimal(10, 2)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  user       User     @relation(fields: [userId], references: [id])
-  orders     Order[]
+enum UserStatus {
+  active
+  blocked
+}
+
+enum OrderStatus {
+  pending
+  processing
+  confirmed
+  cancelled
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+}
+
+model User {
+  id             String     @id @default(uuid()) @db.Uuid
+  name           String     @db.VarChar(100)
+  email          String     @unique @db.VarChar(100)
+  hashedPassword String     @db.VarChar(255)
+  phone          String?    @db.VarChar(20)
+  role           Role       @default(customer)
+  isVerified     Boolean    @default(false)
+  status         UserStatus @default(active)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  products  Product[] @relation("ProductCreator")
+  addresses Address[]
+  carts     Cart[]
+  orders    Order[]   @relation("CustomerOrders")
+  revenues  Revenue[] @relation("SellerRevenue")
+}
+
+model Category {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique @db.VarChar(100)
+  slug      String   @unique @db.VarChar(120)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
 }
 
 model Product {
-  id            String      @id @default(uuid()) @db.Uuid
-  name          String      @db.VarChar(150)
+  id            String   @id @default(uuid()) @db.Uuid
+  categoryId    String   @db.Uuid
+  name          String   @db.VarChar(150)
   description   String
-  brand         String      @db.VarChar(100)
-  price         Decimal     @db.Decimal(10, 2)
+  brand         String   @db.VarChar(100)
+  price         Decimal  @db.Decimal(10, 2)
   stockQuantity Int
-  thumbnail     String      @db.VarChar(255)
-  createdBy     String      @db.Uuid
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  creator       User        @relation("ProductCreator", fields: [createdBy], references: [id])
-  orderItems    OrderItem[]
+  thumbnail     String   @db.VarChar(255)
+  createdBy     String   @db.Uuid
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  category   Category    @relation(fields: [categoryId], references: [id])
+  creator    User        @relation("ProductCreator", fields: [createdBy], references: [id])
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+}
+
+model Address {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  division      String   @db.VarChar(100)
+  district      String   @db.VarChar(100)
+  area          String   @db.VarChar(100)
+  streetAddress String
+  postalCode    String   @db.VarChar(20)
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id])
+  orders Order[]
+}
+
+model Cart {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id])
+  cartItems CartItem[]
+}
+
+model CartItem {
+  id        String @id @default(uuid()) @db.Uuid
+  cartId    String @db.Uuid
+  productId String @db.Uuid
+  quantity  Int
+
+  cart    Cart    @relation(fields: [cartId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 }
 
 model Order {
-  id            String      @id @default(uuid()) @db.Uuid
-  customerId    String      @db.Uuid
-  orderNumber   String      @unique
-  totalAmount   Decimal     @db.Decimal(10, 2)
-  orderStatus   String      @default("pending")
-  paymentStatus String      @default("pending")
-  canCancel     Boolean     @default(true)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  customer      Customer    @relation(fields: [customerId], references: [id])
-  orderItems    OrderItem[]
-  revenue       Revenue?
+  id            String        @id @default(uuid()) @db.Uuid
+  customerId    String        @db.Uuid
+  addressId     String        @db.Uuid
+  orderNumber   String        @unique @db.VarChar(50)
+  totalAmount   Decimal       @db.Decimal(10, 2)
+  orderStatus   OrderStatus   @default(pending)
+  paymentStatus PaymentStatus @default(pending)
+  canCancel     Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  customer   User        @relation("CustomerOrders", fields: [customerId], references: [id])
+  address    Address     @relation(fields: [addressId], references: [id])
+  orderItems OrderItem[]
+  payment    Payment?
+  revenue    Revenue?
 }
 
 model OrderItem {
@@ -69,8 +140,21 @@ model OrderItem {
   quantity   Int
   unitPrice  Decimal @db.Decimal(10, 2)
   totalPrice Decimal @db.Decimal(10, 2)
-  order      Order   @relation(fields: [orderId], references: [id])
-  product    Product @relation(fields: [productId], references: [id])
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id            String        @id @default(uuid()) @db.Uuid
+  orderId       String        @unique @db.Uuid
+  paymentMethod String        @db.VarChar(50)
+  transactionId String?       @db.VarChar(255)
+  amount        Decimal       @db.Decimal(10, 2)
+  paymentStatus PaymentStatus
+  createdAt     DateTime      @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
 }
 
 model Revenue {
@@ -79,6 +163,7 @@ model Revenue {
   sellerId      String   @db.Uuid
   revenueAmount Decimal  @db.Decimal(10, 2)
   createdAt     DateTime @default(now())
-  order         Order    @relation(fields: [orderId], references: [id])
-  seller        User     @relation("SellerRevenue", fields: [sellerId], references: [id])
+
+  order  Order @relation(fields: [orderId], references: [id])
+  seller User  @relation("SellerRevenue", fields: [sellerId], references: [id])
 }
