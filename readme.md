@@ -18,78 +18,63 @@
 
 
 ## Inteview Questions of 17 May 2026
-# 📘 Prisma ORM Interview Guide
-
-A concise guide to Prisma ORM concepts commonly asked in backend interviews.
-
----
 
 # 1. What is Prisma ORM and why is it used?
 
-Prisma ORM is a modern Object Relational Mapper for Node.js and TypeScript that simplifies database access using a type-safe API.
+ans: Prisma ORM is a modern Object-Relational Mapping tool for Node.js + TypeScript that provides a type-safe API for database operations.
 
-## Why Prisma is used:
+Why Prisma is used:
+1. Fully type-safe database queries
+2. Auto-generated TypeScript types
+3. Removes need for manual SQL in most cases
+4. Reduces runtime errors significantly
+5. Supports PostgreSQL, MySQL, SQLite, MongoDB
 
-- Type-safe database queries
-- Auto-generated TypeScript types
-- Eliminates manual SQL writing
-- Reduces runtime errors
-- Works with PostgreSQL, MySQL, SQLite, MongoDB
-
-## Example:
-
+Example:
 ```ts
 const users = await prisma.user.findMany();
-2. Difference between findUnique() and findFirst()
-findUnique()
-
-Used when querying a unique field (id, email, etc.)
-
+```
+# 2. Differences between `findUnique()` and `findFirst()`
+ans: findUnique(): Used when querying unique fields (e.g., id, email).
+Example:
+```ts
 const user = await prisma.user.findUnique({
   where: { email: "test@gmail.com" },
 });
 ```
-Key Points:
-Only works with unique fields
-Returns one record or null
-findFirst()
-
-Used when searching non-unique fields
-
+findFirst(): Used when querying non-unique fields or multiple matches exist.
+Example: 
+```ts
 const user = await prisma.user.findFirst({
   where: { name: "Shawon" },
 });
-Key Points:
-Works on non-unique fields
-Returns first matching record
-Summary
-Method	Unique Field	Return Type
-findUnique	Yes	One or null
-findFirst	No	First match
-3. What is Prisma Migration?
-
-Prisma Migration is a system to manage database schema changes over time.
-
-Command:
+```
+# 3. What is Prisma Migration?
+Ans: Prisma Migrations manage database schema changes over time in a controlled and versioned way.
+`Command`
+```
 npx prisma migrate dev --name init
+```
 What it does:
-Creates migration files
-Updates database schema
-Syncs schema with database
-Regenerates Prisma Client
-Example Flow:
-Update schema:
+1. Creates migration files
+2. Updates database schema
+3. Syncs Prisma schema with DB
+4. Regenerates Prisma Client
+
+Example:
+Step-1: Update Schema
+```prisma
 model User {
   id   String @id @default(uuid())
   name String
+  email String @unique
 }
-Run migration:
-prisma migrate dev
-4. Difference between select and include
-select
+```
+Step-2: Run migration
 
-Used to fetch specific fields only.
-
+# 4. Difference between select and include
+Ans: select: Used to fetch specific fields only.
+```ts
 const user = await prisma.user.findUnique({
   where: { id: "1" },
   select: {
@@ -97,60 +82,39 @@ const user = await prisma.user.findUnique({
     email: true,
   },
 });
-Result:
-
-Only selected fields are returned.
-
-include
-
-Used to fetch related data (relations).
-
+```
+include: Used to fetch related data
+```ts
 const user = await prisma.user.findUnique({
   where: { id: "1" },
   include: {
     posts: true,
   },
 });
-Result:
-
-User + related posts
-
-Summary
-Feature	select	include
-Fields	Specific fields	Relations
-Use case	Reduce payload	Fetch relations
-5. What is schema.prisma?
-
-The schema.prisma file defines the structure of your database and Prisma configuration.
+```
+# 5. What is schema.prisma?
+Ans: The schema.prisma file defines your database structure and Prisma configuration.
 
 Main Sections:
-1. Datasource
-
-Defines database connection.
-
+1. Datasource: Defines database connection.
+```prisma
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
-2. Generator
-
-Defines Prisma Client generation.
-
+```
+2. Generator: Defines Prisma Client generation
+``` prisma
 generator client {
   provider = "prisma-client-js"
 }
-3. Models
-
-Defines database tables.
-
-model User {
+```
+3. Models: Defines database tables
+```model User {
   id    String @id @default(uuid())
   name  String
   email String @unique
 }
-
-
-## All Verified USers API Result
+```
 
 # Database table design for a multivendor projects
 <img width="2362" height="2101" alt="DarazSellerPoint (1)" src="https://github.com/user-attachments/assets/e316f214-de15-46a2-ace6-8af88e04f149" />
@@ -158,6 +122,7 @@ model User {
 
 # Database Interview Questions & Answers
 ##task of may 15
+
 
 ## 1. Difference between DELETE, TRUNCATE and DROP?
 
